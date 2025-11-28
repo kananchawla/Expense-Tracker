@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Expense Tracker Pro</title>
+    
+    <!-- 1. Import Tailwind CSS (Styling) - REQUIRES INTERNET -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Import FontAwesome (Icons) - REQUIRES INTERNET -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- 3. Import Chart.js (Graphs) - REQUIRES INTERNET -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Internal CSS Styles -->
+    <style>
+        /* Smooth transitions for page switching */
+        .page-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        /* This class MUST have !important to override the display:none */
+        .active-section {
+            display: block !important;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Nav Button Styling */
+        .nav-btn.active {
+            background-color: #4338ca; /* Indigo-700 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- NAVIGATION BAR -->
+    <nav class="bg-indigo-600 text-white shadow-lg z-10">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="font-bold text-xl tracking-tight">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>ExpenseTrack
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="showPage('dashboard')" class="nav-btn bg-indigo-700 hover:bg-indigo-500 px-3 py-2 rounded-md text-sm font-medium transition" id="nav-dashboard">Dashboard</button>
+                    <button onclick="showPage('add')" class="nav-btn hover:bg-indigo-500 px-3 py-2 rounded-md text-sm font-medium transition" id="nav-add">Add New</button>
+                    <button onclick="showPage('history')" class="nav-btn hover:bg-indigo-500 px-3 py-2 rounded-md text-sm font-medium transition" id="nav-history">History</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6">
+        <div class="max-w-3xl mx-auto">
+
+            <!-- PAGE 1: DASHBOARD -->
+            <div id="dashboard" class="page-section active-section">
+                <h2 class="text-2xl font-bold mb-6 text-gray-700">Financial Overview</h2>
+                
+                <!-- Budget Progress Section -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                    <div class="flex justify-between items-end mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700">Monthly Budget</h3>
+                            <p class="text-sm text-gray-500">Target: <span id="budget-target" class="font-medium">₹0.00</span></p>
+                        </div>
+                        <button onclick="setBudget()" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium bg-indigo-50 px-3 py-1 rounded-full transition">
+                            <i class="fa-solid fa-pen mr-1"></i> Edit Goal
+                        </button>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-4 mb-3 overflow-hidden">
+                        <div id="budget-progress" class="bg-indigo-500 h-4 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-sm font-medium">
+                        <span class="text-gray-600">Spent: <span id="budget-spent">₹0.00</span></span>
+                        <span id="budget-status" class="text-green-600">Remaining: ₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-indigo-500">
+                        <div class="text-gray-500 text-sm font-medium uppercase">Total Spent</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-2" id="total-amount">₹0.00</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                        <div class="text-gray-500 text-sm font-medium uppercase">Transaction Count</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-2" id="transaction-count">0</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
+                        <div class="text-gray-500 text-sm font-medium uppercase">Highest Category</div>
+                        <div class="text-lg font-bold text-gray-900 mt-2 truncate" id="top-category">None</div>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Chart Container -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center justify-center">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Spending by Category</h3>
+                        <div class="w-full h-64 relative">
+                            <canvas id="expenseChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-700">Recent Activity</h3>
+                            <button onclick="showPage('history')" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">View All</button>
+                        </div>
+                        <div id="recent-list" class="space-y-3 overflow-y-auto max-h-56">
+                            <p class="text-gray-400 text-center py-4">No expenses recorded yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: ADD EXPENSE FORM -->
+            <div id="add" class="page-section">
+                <div class="max-w-lg mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="bg-indigo-600 px-6 py-4">
+                        <h2 class="text-xl font-bold text-white">Add New Expense</h2>
+                    </div>
+                    <form id="expense-form" onsubmit="addExpense(event)" class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <input type="date" id="date" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none border-gray-300">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <select id="category" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none border-gray-300">
+                                <option value="Food">🍔 Food & Dining</option>
+                                <option value="Travel">🚗 Travel & Transport</option>
+                                <option value="Shopping">🛍️ Shopping</option>
+                                <option value="Bills">📃 Bills & Utilities</option>
+                                <option value="Entertainment">🎬 Entertainment</option>
+                                <option value="Other">📦 Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                            <input type="number" id="amount" step="0.01" min="0" required placeholder="0.00" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none border-gray-300">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <input type="text" id="description" placeholder="What was this for?" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none border-gray-300">
+                        </div>
+
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition duration
